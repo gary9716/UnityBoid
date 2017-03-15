@@ -23,15 +23,21 @@ public class BoidController : MonoBehaviour
 
     [Range(-20, 20)]
     public float cohesionFactor = 0.4f;
+
     [Range(0, 10)]
     public float separationRadius = 3f;
+
     [Range(0, 20)]
     public float alignFactor = 0.5f;
-    [Range(-10, 10)]
+
+    [Range(0, 20)]
     public float attractFactor = 1f;
+
     [Range(0, 5)]
     public float randomness = 1f;
 
+    public float landingDist = 0.3f;
+	public float perchingDist = 0.01f;
     List<BoidFlocking> boids = new List<BoidFlocking>();
 
 	void Start()
@@ -50,26 +56,27 @@ public class BoidController : MonoBehaviour
 		}
 	}
 
+	public int numFlockingInstances = 0;
+
 	void Update()
 	{
 		Vector3 center = Vector3.zero;
 		Vector3 velocity = Vector3.zero;
+		numFlockingInstances = 0;
 		foreach (BoidFlocking boid in boids)
 		{
-			center += boid.transform.localPosition;
-			velocity += boid.rigid.velocity;
+			if(boid.curState == BoidFlocking.State.flocking) {
+				center += boid.transform.position;
+				velocity += boid.rigid.velocity;
+				numFlockingInstances++;
+			}
 		}
 
-		flockCenter = center / flockSize;
-		flockVelocity = velocity / flockSize;
-        
+		if(numFlockingInstances > 0) {
+			flockCenter = center / numFlockingInstances;
+			flockVelocity = velocity / numFlockingInstances;
+		}
+
     }
 
-    void FixedUpdate()
-    {
-        foreach (BoidFlocking boid in boids)
-        {
-            boid.sphereCollider.radius = separationRadius;
-        }
-    }
 }
