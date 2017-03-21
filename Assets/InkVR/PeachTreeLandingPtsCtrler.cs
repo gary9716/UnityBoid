@@ -89,7 +89,7 @@ public class PeachTreeLandingPtsCtrler : MonoBehaviour {
 		float dotVal = Vector3.Dot(obsDir, transform.up);
 		foreach(Landable pt in landablePts) {
 			Vector3 eulerAngles = pt.getTrans().localEulerAngles;
-			eulerAngles.x = dotVal > 0 ? 180:0;
+			eulerAngles.x = dotVal > 0 ? 0:180;
 			pt.getTrans().localEulerAngles = eulerAngles;	
 		}
 	}

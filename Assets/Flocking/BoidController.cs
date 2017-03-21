@@ -40,7 +40,28 @@ public class BoidController : MonoBehaviour
 	public float perchingDist = 0.01f;
     List<BoidFlocking> boids = new List<BoidFlocking>();
 
+	public bool allBoidsPerching {
+		get {
+			return numFlockingInstances == 0;
+		}
+	}
+
 	public PeachTreeLandingPtsCtrler perchingTree;
+	public PeachTreesManager peachTreesManager;
+
+	bool canBeTriggered = true;
+
+	public void Triggered() {
+		if(!canBeTriggered || !allBoidsPerching) 
+			return;
+
+		canBeTriggered = false;
+
+		if(peachTreesManager != null)
+			peachTreesManager.FlyToAnotherTree();
+
+		canBeTriggered = true;
+	}
 
 	void Start()
 	{
@@ -87,6 +108,15 @@ public class BoidController : MonoBehaviour
 
 	public void FlyToTree(PeachTreeLandingPtsCtrler peachTree, bool scattered = true) {
 		
+		if(peachTree == perchingTree)
+			return;
+		
+		foreach(Landable landable in perchingTree.landablePts) {
+			landable.ReleaseAll();
+		}
+
+		perchingTree = peachTree;
+
 		if(scattered) 
 			cohesionFactor = -Mathf.Abs(cohesionFactor);
 		else
@@ -98,8 +128,6 @@ public class BoidController : MonoBehaviour
 				Debug.Log("not enough landing pts QAQ");
 				break;
 			}
-			if(boid.landingPt != null)
-				boid.landingPt.Release(boid);
 			landable.TargetBy(boid);
 			boid.EnterState(BoidFlocking.State.flocking);
 		}
@@ -111,6 +139,8 @@ public class BoidController : MonoBehaviour
 	void RecoverCoherent() {
 		cohesionFactor = Mathf.Abs(cohesionFactor);
 	}
+
+
 
 	[HideInInspector]
 	public int numFlockingInstances = 0;
@@ -140,12 +170,11 @@ public class BoidController : MonoBehaviour
 
 public interface Landable {
 	void TargetBy(BoidFlocking boid);
+
 	void Release(BoidFlocking boid);
 	void ReleaseAll();
 
 	bool isLandable();
-
-	//bool hasntBecomeTarget();
 
 	Transform getTrans();
 }

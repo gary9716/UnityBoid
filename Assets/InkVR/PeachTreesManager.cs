@@ -6,7 +6,7 @@ public class PeachTreesManager : MonoBehaviour {
 
 	public BoidController boidCtrler;
 
-	PeachTreeLandingPtsCtrler[] peachTrees;
+	public PeachTreeLandingPtsCtrler[] peachTrees;
 	int minNumLandingPts = int.MaxValue;
 
 	public int numPeachTrees {
@@ -28,6 +28,7 @@ public class PeachTreesManager : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
+		boidCtrler.peachTreesManager = this;
 		peachTrees = GetComponentsInChildren<PeachTreeLandingPtsCtrler>();
 		foreach(PeachTreeLandingPtsCtrler peachTree in peachTrees) {
 			//peachTree.putTestingButterfly = true;
@@ -43,16 +44,25 @@ public class PeachTreesManager : MonoBehaviour {
 				boidCtrler.PutBoidsOnTree(peachTree);
 		}
 
-		Invoke("FlyToSecondTree", 5);		
+		//Invoke("FlyToSecondTree", 5);
 
 	}
 	
-	void FlyToSecondTree() {
+	/*
+	public void FlyToSecondTree() {
 		if(numPeachTrees > 1) {
 			boidCtrler.FlyToTree(peachTrees[1]);
 		}
-
 	}
+	*/
 
+	public void FlyToAnotherTree() {
+		foreach(PeachTreeLandingPtsCtrler peachTree in peachTrees) {
+			if(peachTree != boidCtrler.perchingTree) {
+				boidCtrler.FlyToTree(peachTree);
+				break;
+			}		
+		}
+	}
 
 }
