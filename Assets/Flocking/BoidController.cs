@@ -36,26 +36,83 @@ public class BoidController : MonoBehaviour
     [Range(0, 5)]
     public float randomness = 1f;
 
-    public float landingDist = 0.3f;
+    public float strongAttractDist = 0.3f;
 	public float perchingDist = 0.01f;
     List<BoidFlocking> boids = new List<BoidFlocking>();
+
+	public PeachTreeLandingPtsCtrler perchingTree;
 
 	void Start()
 	{
         
+		
+	}
+
+	public void RandomGenerateBoidInsideCollider(BoidFlocking.State initState) {
+		Collider collider = GetComponent<Collider>();
+		Debug.Assert(collider != null, "no collider on this gameObject");
+
+		boids.Clear();
 		for (int i = 0; i < flockSize; i++)
 		{
 			BoidFlocking boid = Instantiate(prefab, transform.position, transform.rotation) as BoidFlocking;
 			boid.transform.parent = transform;
 			boid.transform.localPosition = new Vector3(
-							Random.value * GetComponent<Collider>().bounds.size.x,
-							Random.value * GetComponent<Collider>().bounds.size.y,
-							Random.value * GetComponent<Collider>().bounds.size.z) - GetComponent<Collider>().bounds.extents;
+							Random.value * collider.bounds.size.x,
+							Random.value * collider.bounds.size.y,
+							Random.value * collider.bounds.size.z) - collider.bounds.extents;
 			boid.controller = this;
+			boid.EnterState(initState);
 			boids.Add(boid);
 		}
 	}
 
+	public void PutBoidsOnTree(PeachTreeLandingPtsCtrler peachTree) {
+		boids.Clear();
+		foreach (Landable landable in peachTree.landablePts)
+		{
+			Transform landingPtTrans = landable.getTrans();
+			BoidFlocking boid = Instantiate(prefab, landingPtTrans.position, landingPtTrans.rotation) as BoidFlocking;
+			boid.transform.parent = transform;
+			
+			boid.controller = this;
+			landable.TargetBy(boid);
+
+			boid.EnterState(BoidFlocking.State.perching);
+			boids.Add(boid);
+
+		}
+		perchingTree = peachTree;
+	}
+
+	public void FlyToTree(PeachTreeLandingPtsCtrler peachTree, bool scattered = true) {
+		
+		if(scattered) 
+			cohesionFactor = -Mathf.Abs(cohesionFactor);
+		else
+			cohesionFactor = Mathf.Abs(cohesionFactor);
+		
+		foreach(BoidFlocking boid in boids) {
+			Landable landable = peachTree.GetOneLandablePt();
+			if(landable == null) {
+				Debug.Log("not enough landing pts QAQ");
+				break;
+			}
+			if(boid.landingPt != null)
+				boid.landingPt.Release(boid);
+			landable.TargetBy(boid);
+			boid.EnterState(BoidFlocking.State.flocking);
+		}
+
+		if(cohesionFactor < 0)
+			Invoke("RecoverCoherent", 1);
+	}
+
+	void RecoverCoherent() {
+		cohesionFactor = Mathf.Abs(cohesionFactor);
+	}
+
+	[HideInInspector]
 	public int numFlockingInstances = 0;
 
 	void Update()
@@ -79,4 +136,16 @@ public class BoidController : MonoBehaviour
 
     }
 
+}
+
+public interface Landable {
+	void TargetBy(BoidFlocking boid);
+	void Release(BoidFlocking boid);
+	void ReleaseAll();
+
+	bool isLandable();
+
+	//bool hasntBecomeTarget();
+
+	Transform getTrans();
 }

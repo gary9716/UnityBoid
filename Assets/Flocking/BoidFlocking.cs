@@ -26,17 +26,20 @@ public class BoidFlocking : MonoBehaviour
     public State preState = State.none;
     public State curState = State.none;
 
+    public Landable landingPt;
 
     Transform target;
 
     IEnumerator Start()
 	{
         WaitForSeconds waitForFixedSecs = new WaitForSeconds(Random.Range(0.05f, 0.3f));
-        SetTarget(controller.target);
-        EnterState(State.flocking);
+        
+        if(curState == State.none)
+            EnterState(State.flocking);
+
         while (true)
 		{
-            CalcNewVelocityAndRotation();
+            CalcNewVelocity();
 			yield return waitForFixedSecs;
 		}
 	}
@@ -46,7 +49,7 @@ public class BoidFlocking : MonoBehaviour
             animator.SetFloat("moveSpeed", speed);
     }
 
-    void CalcNewVelocityAndRotation() {
+    void CalcNewVelocity() {
         if (controller)
         {
             if(curState == State.flocking) {
@@ -71,17 +74,13 @@ public class BoidFlocking : MonoBehaviour
             {
                 rigid.velocity = rigid.velocity * (controller.maxVelocity / speed);
             }
-            else if (speed < controller.minVelocity)
+            else if (speed < controller.minVelocity && curState != State.landing)
             {
-                if(curState != State.landing)
-                    rigid.velocity = rigid.velocity * (controller.minVelocity / speed);
+                rigid.velocity = rigid.velocity * (controller.minVelocity / speed);
             }
             
             SetAnimSpeed(rigid.velocity.magnitude);
 
-            if(rigid.velocity != Vector3.zero)
-                rigid.transform.rotation = Quaternion.LookRotation(rigid.velocity);
-            
         }
         else
         {
@@ -101,10 +100,13 @@ public class BoidFlocking : MonoBehaviour
         curState = state;
 
         if(curState == State.perching) {
-            animator.SetBool("idle", true);
+            animator.SetBool("isIdle", true);
+            SetAnimSpeed(0);
+            if(isAvoiding)
+                ChangeAvoidMode(false);
             rigid.isKinematic = true;
             rigid.velocity = Vector3.zero;
-            SetAnimSpeed(0);
+            landingPt = target.GetComponent<Landable>();
         }
         else if(curState == State.landing) {
             
@@ -113,7 +115,8 @@ public class BoidFlocking : MonoBehaviour
             ChangeAvoidMode(false);
         }
         else if(curState == State.flocking) {
-            animator.SetBool("idle", false);
+            animator.SetBool("isIdle", false);
+            rigid.isKinematic = false;
             ChangeAvoidMode(true);
         }
 
@@ -136,14 +139,14 @@ public class BoidFlocking : MonoBehaviour
     {
         sphereCollider.radius = controller.separationRadius;
         UpdateState();
+
+        if(rigid.velocity != Vector3.zero)
+            rigid.transform.rotation = Quaternion.LookRotation(rigid.velocity);
+        
     }
 
     void UpdateState() {
-        if(curState == State.perching) {
-            //start flocking after an while
-
-        }
-        else if(curState == State.landing) {
+        if(curState == State.landing) {
             if(target != null && Vector3.Distance(target.position, rigid.transform.position) < 0.05f) {
                 EnterState(State.perching);
             }                        
@@ -155,7 +158,7 @@ public class BoidFlocking : MonoBehaviour
             }
         }
         else if(curState == State.flocking) {
-            if(target != null && Vector3.Distance(target.position, rigid.transform.position) < controller.landingDist) {
+            if(target != null && Vector3.Distance(target.position, rigid.transform.position) < controller.strongAttractDist) {
                 EnterState(State.approaching);
             }
         }
